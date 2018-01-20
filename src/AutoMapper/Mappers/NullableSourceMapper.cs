@@ -9,6 +9,8 @@ namespace AutoMapper.Mappers
 
     public class NullableSourceMapper : IObjectMapperInfo
     {
+        public bool CanMapNullSource => false;
+
         public bool IsMatch(TypePair context) => context.SourceType.IsNullableType();
 
         public Expression MapExpression(IConfigurationProvider configurationProvider, ProfileMap profileMap,

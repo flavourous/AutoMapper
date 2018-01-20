@@ -3,5 +3,6 @@
     public interface IObjectMapperInfo : IObjectMapper
     {
         TypePair GetAssociatedTypes(TypePair initialTypes);
+        bool CanMapNullSource { get; }
     }
 }

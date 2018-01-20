@@ -5,6 +5,8 @@ namespace AutoMapper.Mappers
 {
     public abstract class EnumerableMapperBase : IObjectMapperInfo
     {
+        public bool CanMapNullSource => false;
+
         public TypePair GetAssociatedTypes(TypePair initialTypes)
         {
             var sourceElementType = ElementTypeHelper.GetElementType(initialTypes.SourceType);

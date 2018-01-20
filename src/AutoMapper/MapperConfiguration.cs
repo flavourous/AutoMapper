@@ -172,7 +172,8 @@ namespace AutoMapper
                         Default(destination.Type)), null));
             }
             var profileMap = mapRequest.PropertyMap?.TypeMap?.Profile ?? Configuration;
-            var nullCheckSource = NullCheckSource(profileMap, source, destination, fullExpression, mapRequest.PropertyMap);
+            var performNullSourceCheck = mapperToUse is IObjectMapperInfo omi ? !omi.CanMapNullSource : true;
+            var nullCheckSource = performNullSourceCheck ? NullCheckSource(profileMap, source, destination, fullExpression, mapRequest.PropertyMap) : fullExpression;
             return Lambda(nullCheckSource, source, destination, context);
         }
 

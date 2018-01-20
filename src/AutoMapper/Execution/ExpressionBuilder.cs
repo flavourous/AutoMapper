@@ -24,7 +24,9 @@ namespace AutoMapper.Execution
             TypePair typePair,
             Expression sourceParameter,
             Expression contextParameter,
-            PropertyMap propertyMap = null, Expression destinationParameter = null)
+            PropertyMap propertyMap = null, 
+            Expression destinationParameter = null,
+            bool mapNullSource = false)
         {
             if (destinationParameter == null)
                 destinationParameter = Default(typePair.DestinationType);
@@ -44,7 +46,7 @@ namespace AutoMapper.Execution
             }
             var objectMapperExpression = ObjectMapperExpression(configurationProvider, profileMap, typePair,
                 sourceParameter, contextParameter, propertyMap, destinationParameter);
-            var nullCheckSource = NullCheckSource(profileMap, sourceParameter, destinationParameter, objectMapperExpression, propertyMap);
+            var nullCheckSource = mapNullSource ? objectMapperExpression : NullCheckSource(profileMap, sourceParameter, destinationParameter, objectMapperExpression, propertyMap);
             return ExpressionFactory.ToType(nullCheckSource, typePair.DestinationType);
         }
 
