@@ -199,6 +199,14 @@ namespace AutoMapper
             return typeMap;
         }
 
+        IEnumerable<Type> TakeTypeParams(Type map, Type closed)
+        {
+            if (map == typeof(void)) yield return closed;
+            else if(map.IsGenericTypeDefinition())
+                foreach (var closedTypeArg in closed.GetGenericArguments())
+                    yield return closedTypeArg;
+        }
+
         public TypeMap CreateClosedGenericTypeMap(ITypeMapConfiguration openMapConfig, TypeMapRegistry typeMapRegistry, TypePair closedTypes)
         {
             var closedMap = _typeMapFactory.CreateTypeMap(closedTypes.SourceType, closedTypes.DestinationType, this);
@@ -209,13 +217,11 @@ namespace AutoMapper
 
             if(closedMap.TypeConverterType != null)
             {
-                var typeParams =
-                    (openMapConfig.SourceType.IsGenericTypeDefinition() ? closedTypes.SourceType.GetGenericArguments() : new Type[0])
-                        .Concat
-                    (openMapConfig.DestinationType.IsGenericTypeDefinition() ? closedTypes.DestinationType.GetGenericArguments() : new Type[0]);
-
+                var sourceParams = TakeTypeParams(openMapConfig.SourceType, closedTypes.SourceType);
+                var destParams = TakeTypeParams(openMapConfig.DestinationType, closedTypes.DestinationType);
                 var neededParameters = closedMap.TypeConverterType.GetGenericParameters().Length;
-                closedMap.TypeConverterType = closedMap.TypeConverterType.MakeGenericType(typeParams.Take(neededParameters).ToArray());
+                var takeParams = sourceParams.Concat(destParams).Take(neededParameters);
+                closedMap.TypeConverterType = closedMap.TypeConverterType.MakeGenericType(takeParams.ToArray());
             }
             if(closedMap.DestinationTypeOverride?.IsGenericTypeDefinition() == true)
             {
@@ -225,13 +231,16 @@ namespace AutoMapper
             return closedMap;
         }
 
+        bool PossiblyOpenMatchesClosed(Type possiblyOpen, Type closed) =>
+            possiblyOpen == typeof(void) || possiblyOpen.GetGenericTypeDefinitionIfGeneric() == closed.GetGenericTypeDefinitionIfGeneric();
+        bool PossiblyOpenMatchesClosed(TypePair possiblyOpen, TypePair closed) =>
+                PossiblyOpenMatchesClosed(possiblyOpen.SourceType, closed.SourceType) &&
+                PossiblyOpenMatchesClosed(possiblyOpen.DestinationType, closed.DestinationType);
         public ITypeMapConfiguration GetGenericMap(TypePair closedTypes)
         {
             return _openTypeMapConfigs
                 .SelectMany(tm => tm.ReverseTypeMap == null ? new[] { tm } : new[] { tm, tm.ReverseTypeMap })
-                .Where(tm =>
-                    tm.Types.SourceType.GetGenericTypeDefinitionIfGeneric() == closedTypes.SourceType.GetGenericTypeDefinitionIfGeneric() &&
-                    tm.Types.DestinationType.GetGenericTypeDefinitionIfGeneric() == closedTypes.DestinationType.GetGenericTypeDefinitionIfGeneric())
+                .Where(tm => PossiblyOpenMatchesClosed(tm.Types, closedTypes))
                 .OrderByDescending(tm => tm.DestinationType == closedTypes.DestinationType) // Favor more specific destination matches,
                 .ThenByDescending(tm => tm.SourceType == closedTypes.SourceType) // then more specific source matches
                 .FirstOrDefault();
